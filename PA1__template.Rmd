@@ -1,0 +1,129 @@
+---
+title: "Peer-graded Assignment: Course Project 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library("knitr")
+
+knitr::opts_chunk$set(echo = T, warning = F, error = T)
+knit2html("")
+```
+
+## 1. Code for reading in the dataset and/or processing the data
+
+```{r}
+ activity <- read.csv("C:/Users/auke.beeksma/Documents/activity.csv")
+
+```
+
+## 2. Histogram of the total number of steps taken each day
+
+```{r}
+library(dplyr)
+activity  <- activity[complete.cases(activity), ]
+
+activityday <- tapply(activity$steps, activity$date, sum, na.rm = T)
+hist(activityday, main = "Steps a day")
+```
+
+
+## 3. Mean and median number of steps taken each day
+
+```{r}
+steps <- activity %>% 
+  group_by(date) %>% 
+  summarize_all(sum)
+
+mean(steps$steps)
+median(steps$steps)
+
+```
+
+## 4. Time series plot of the average number of steps taken
+
+```{r}
+
+
+plot(steps$date, steps$steps, xlab = "Day in october/november", ylab = "Average step a day")
+abline( h = mean(steps$steps), col = "blue")
+```
+
+## 5. The 5-minute interval that, on average, contains the maximum number of steps
+
+```{r}
+
+stepsmax5 <- activity %>% 
+  group_by(interval) %>% 
+  summarize_all(mean)
+ 
+
+which.max(stepsmax5$steps)
+stepsmax5[104,]
+```
+
+## 6. Code to describe and show a strategy for imputing missing data
+Strategy: replace missing data with imputed "mean" data. This generates a random sample of numbers between zero and 16492. This forms a better representation of the data then for example "mean" because of the many values of zero in the data. The impact of adding ''random numbers'' seems little (only a small difference in the mean)
+
+```{r}
+
+library(Hmisc)
+activity <- read.csv("C:/Users/auke.beeksma/Documents/activity.csv")
+nrow(activity) - sum(complete.cases(activity))
+
+activity$imputed_steps <- with(activity, impute(steps, "random"))
+
+steps <- activity %>% 
+  group_by(date) %>% 
+  summarize_all(sum)
+
+mean(steps$imputed_steps)
+median(steps$imputed_steps)
+
+
+```
+
+
+## 7. Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r}
+
+activity <- tapply(activity$imputed_steps, activity$date, sum, na.rm = T)
+hist(activity, main = "Steps a day")
+```
+
+## 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r}
+
+library(lubridate)
+activity <- read.csv("C:/Users/auke.beeksma/Documents/activity.csv")
+
+activity <- activity %>% 
+  select(steps, date, interval) %>% 
+  mutate(weekday = wday(date, label = T)) 
+
+weekday <- filter(activity, !weekday %in% c("za","zo"))
+weekend <- filter(activity, weekday %in% c("za","zo"))
+
+weekday  <- weekday[complete.cases(weekday), ]
+weekend  <- weekend[complete.cases(weekend), ]
+
+par(mfrow=c(2,1), col = "blue")
+
+
+weekday %>%
+  group_by(interval) %>% 
+  summarise (mean(steps)) -> meanstepw
+  
+  plot(meanstepw, type = "l", ylim=range(c(0,250)), main = "Steps per 5 minute interval on daily basis week, 0:00-23:59")
+
+weekend %>%
+  group_by(interval) %>% 
+  summarise (mean(steps)) -> meanstepwk
+
+plot(meanstepwk, type = "l", ylim=range(c(0,250)), main = "Steps per 5 minute interval on daily basis weekend, 0:00-23:59")
+
+```
+
+
